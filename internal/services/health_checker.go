@@ -43,8 +43,8 @@ func (lc *HealthCheckerService) CheckSitesAvailability(ctx context.Context, link
 			}
 
 			mu.Lock()
+			defer mu.Unlock()
 			resultedLinks[l] = status
-			mu.Unlock()
 		}(link)
 	}
 
