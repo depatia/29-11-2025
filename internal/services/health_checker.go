@@ -12,7 +12,6 @@ import (
 )
 
 type HealthCheckerService struct {
-	mu     *sync.Mutex
 	logger *logrus.Logger
 	repo   interfaces.IRepository
 	cfg    *config.Config
@@ -20,7 +19,6 @@ type HealthCheckerService struct {
 
 func NewHealthCheckerService(logger *logrus.Logger, repo interfaces.IRepository, cfg *config.Config) *HealthCheckerService {
 	return &HealthCheckerService{
-		mu:     &sync.Mutex{},
 		logger: logger,
 		repo:   repo,
 		cfg:    cfg,
@@ -31,7 +29,10 @@ func NewHealthCheckerService(logger *logrus.Logger, repo interfaces.IRepository,
 func (lc *HealthCheckerService) CheckSitesAvailability(ctx context.Context, links []string) (map[string]string, int) {
 	resultedLinks := make(map[string]string, len(links))
 
-	wg := sync.WaitGroup{}
+	var (
+		wg = sync.WaitGroup{}
+		mu = &sync.Mutex{}
+	)
 	for _, link := range links {
 		wg.Add(1)
 		go func(l string) { // передаем явно для избежания гонки
@@ -41,9 +42,9 @@ func (lc *HealthCheckerService) CheckSitesAvailability(ctx context.Context, link
 				status = "available"
 			}
 
-			lc.mu.Lock()
+			mu.Lock()
 			resultedLinks[l] = status
-			lc.mu.Unlock()
+			mu.Unlock()
 		}(link)
 	}
 
